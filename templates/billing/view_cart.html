@@ -1,0 +1,179 @@
+{% extends 'base.html' %}
+
+{% block title %}Shopping Cart - Dry Fruits Business{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="h2">Shopping Cart</h1>
+        <div>
+            <a href="{% url 'product_selection' %}" class="btn btn-outline-secondary me-2">
+                <i class="fas fa-plus me-2"></i> Add More Products
+            </a>
+            {% if cart %}
+            <a href="{% url 'checkout' %}" class="btn btn-primary">
+                <i class="fas fa-shopping-cart me-2"></i> Proceed to Checkout
+            </a>
+            {% endif %}
+        </div>
+    </div>
+    
+    {% if cart %}
+        <div class="card mb-4">
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead>
+                            <tr>
+                                <th style="width: 80px;"></th>
+                                <th>Product</th>
+                                <th>Quality</th>
+                                <th class="text-center">Quantity</th>
+                                <th class="text-end">Unit Price</th>
+                                <th class="text-end">Subtotal</th>
+                                <th class="text-center">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for item in cart %}
+                                <tr>
+                                    <td>
+                                        <div class="cart-item-image" style="width: 80px; height: 80px; display: flex; align-items: center; justify-content: center; background-color: #f8f9fa; border-radius: 4px;">
+                                            {% if item.product.image_url %}
+                                                <img src="{{ item.product.image_url }}" alt="{{ item.product.name }}" style="max-height: 100%; max-width: 100%; object-fit: contain;">
+                                            {% else %}
+                                                <i class="fas fa-box fa-2x text-muted"></i>
+                                            {% endif %}
+                                        </div>
+                                    </td>
+                                    <td>{{ item.product_name }}</td>
+                                    <td>{{ item.quality_name }}</td>
+                                    <td class="text-center">
+                                        <div class="input-group input-group-sm" style="max-width: 150px; margin: 0 auto;">
+                                            <input type="number" class="form-control quantity-input" value="{{ item.quantity }}" min="0.001" step="0.001" data-index="{{ forloop.counter0 }}">
+                                            <select class="form-select unit-select" data-index="{{ forloop.counter0 }}">
+                                                <option value="kg" {% if item.unit == 'kg' %}selected{% endif %}>kg</option>
+                                                <option value="g" {% if item.unit == 'g' %}selected{% endif %}>g</option>
+                                                <option value="count" {% if item.unit == 'count' %}selected{% endif %}>pcs</option>
+                                            </select>
+                                        </div>
+                                    </td>
+                                    <td class="text-end">₹{{ item.price|floatformat:2 }}</td>
+                                    <td class="text-end subtotal-cell" data-index="{{ forloop.counter0 }}">₹{{ item.subtotal|floatformat:2 }}</td>
+                                    <td class="text-center">
+                                        <button class="btn btn-sm btn-outline-primary update-item-btn me-1" data-index="{{ forloop.counter0 }}">
+                                            <i class="fas fa-sync-alt"></i>
+                                        </button>
+                                        <button class="btn btn-sm btn-outline-danger remove-item-btn" data-index="{{ forloop.counter0 }}">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                        <tfoot class="table-light">
+                            <tr>
+                                <td colspan="5" class="text-end fw-bold">Total:</td>
+                                <td class="text-end fw-bold">₹{{ subtotal|floatformat:2 }}</td>
+                                <td></td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            </div>
+        </div>
+        
+        <div class="d-flex justify-content-between">
+            <a href="{% url 'product_selection' %}?clear_cart=true" class="btn btn-outline-danger" onclick="return confirm('Are you sure you want to clear your cart?');">
+                <i class="fas fa-trash me-2"></i> Clear Cart
+            </a>
+            <a href="{% url 'checkout' %}" class="btn btn-primary">
+                <i class="fas fa-shopping-cart me-2"></i> Proceed to Checkout
+            </a>
+        </div>
+    {% else %}
+        <div class="card">
+            <div class="card-body text-center py-5">
+                <i class="fas fa-shopping-cart fa-4x text-muted mb-3"></i>
+                <h4>Your cart is empty</h4>
+                <p class="text-muted">Add products to your cart to create a bill.</p>
+                <a href="{% url 'product_selection' %}" class="btn btn-primary mt-3">
+                    <i class="fas fa-plus me-2"></i> Browse Products
+                </a>
+            </div>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    $(document).ready(function() {
+        // Update item quantity
+        $('.update-item-btn').click(function() {
+            const index = $(this).data('index');
+            const quantity = $(`.quantity-input[data-index="${index}"]`).val();
+            const unit = $(`.unit-select[data-index="${index}"]`).val();
+            
+            if (isNaN(quantity) || quantity <= 0) {
+                alert('Please enter a valid quantity');
+                return;
+            }
+            
+            // Send AJAX request to update cart
+            $.ajax({
+                url: '{% url "update_cart" %}',
+                type: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify({
+                    index: index,
+                    quantity: quantity,
+                    unit: unit
+                }),
+                headers: {
+                    'X-CSRFToken': '{{ csrf_token }}'
+                },
+                success: function(response) {
+                    // Update subtotal
+                    $(`.subtotal-cell[data-index="${index}"]`).text('₹' + response.subtotal.toFixed(2));
+                    
+                    // Reload page to update totals
+                    location.reload();
+                },
+                error: function(xhr) {
+                    alert('Error updating cart: ' + xhr.responseJSON.message);
+                }
+            });
+        });
+        
+        // Remove item from cart
+        $('.remove-item-btn').click(function() {
+            if (!confirm('Are you sure you want to remove this item from your cart?')) {
+                return;
+            }
+            
+            const index = $(this).data('index');
+            
+            // Send AJAX request to remove from cart
+            $.ajax({
+                url: '{% url "remove_from_cart" %}',
+                type: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify({
+                    index: index
+                }),
+                headers: {
+                    'X-CSRFToken': '{{ csrf_token }}'
+                },
+                success: function(response) {
+                    // Reload page
+                    location.reload();
+                },
+                error: function(xhr) {
+                    alert('Error removing item: ' + xhr.responseJSON.message);
+                }
+            });
+        });
+    });
+</script>
+{% endblock %}

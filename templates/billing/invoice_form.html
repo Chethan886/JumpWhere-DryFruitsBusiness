@@ -1,0 +1,261 @@
+{% extends 'base.html' %}
+{% load crispy_forms_tags %}
+
+{% block title %}{{ title }} - Dry Fruits Business{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="h2">{{ title }}</h1>
+        <a href="{% url 'invoice_list' %}" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left me-2"></i> Back to Invoices
+        </a>
+    </div>
+    
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card mb-4">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0">Customer Information</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row mb-3">
+                        <div class="col-md-12">
+                            <label class="form-label">Search Customer</label>
+                            <div class="input-group">
+                                <input type="text" id="customerSearch" class="form-control" placeholder="Search by name or phone...">
+                                <button type="button" class="btn btn-primary" id="searchCustomerBtn">
+                                    <i class="fas fa-search"></i>
+                                </button>
+                            </div>
+                            <div id="searchFeedback" class="mt-2 text-danger" style="display: none;"></div>
+                        </div>
+                    </div>
+                    
+                    <div id="customerResults" class="mb-3" style="display: none;">
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Name</th>
+                                        <th>Phone</th>
+                                        <th>Type</th>
+                                        <th>Credit Limit</th>
+                                        <th>Pending</th>
+                                        <th>Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="customerResultsBody">
+                                    <!-- Customer search results will be inserted here -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    
+                    <div id="selectedCustomer" class="mb-3" style="display: none;">
+                        <div class="alert alert-info">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h5 class="mb-1" id="selectedCustomerName"></h5>
+                                    <p class="mb-0" id="selectedCustomerPhone"></p>
+                                </div>
+                                <button type="button" class="btn btn-sm btn-outline-secondary" id="changeCustomerBtn">
+                                    Change
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0">Invoice Details</h5>
+                </div>
+                <div class="card-body">
+                    <form method="post" id="invoiceForm">
+                        {% csrf_token %}
+                        
+                        {{ form.customer_id }}
+                        {{ form.customer_name }}
+                        {{ form.customer_phone }}
+                        
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                {{ form.payment_type|as_crispy_field }}
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                {{ form.payment_due_date|as_crispy_field }}
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                {{ form.discount_percentage|as_crispy_field }}
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                {{ form.tax_percentage|as_crispy_field }}
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            {{ form.notes|as_crispy_field }}
+                        </div>
+                        
+                        <div class="d-grid gap-2 d-md-flex justify-content-md-end mt-4">
+                            <button type="submit" class="btn btn-primary" id="submitBtn" disabled>
+                                <i class="fas fa-save me-2"></i> Create Invoice
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0">Invoice Information</h5>
+                </div>
+                <div class="card-body">
+                    <p class="text-muted">
+                        Create a new invoice by selecting a customer and filling in the invoice details. After creating the invoice, you can add items to it.
+                    </p>
+                    <hr>
+                    <h6 class="fw-bold">Payment Types:</h6>
+                    <ul class="text-muted small">
+                        <li><strong>Cash:</strong> Payment made in cash at the time of purchase</li>
+                        <li><strong>UPI/Card:</strong> Payment made via UPI, debit card, or credit card</li>
+                        <li><strong>Credit:</strong> Payment to be made at a later date</li>
+                    </ul>
+                    <hr>
+                    <h6 class="fw-bold">Invoice Process:</h6>
+                    <ol class="text-muted small">
+                        <li>Create the invoice with customer details</li>
+                        <li>Add items to the invoice</li>
+                        <li>Review and issue the invoice</li>
+                        <li>For credit invoices, track payments in the Payments module</li>
+                    </ol>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    $(document).ready(function() {
+        // Customer search
+        $('#searchCustomerBtn').click(function() {
+            performCustomerSearch();
+        });
+        
+        // Search on enter key
+        $('#customerSearch').keypress(function(e) {
+            if (e.which === 13) {
+                e.preventDefault();
+                performCustomerSearch();
+            }
+        });
+        
+        function performCustomerSearch() {
+            const query = $('#customerSearch').val();
+            if (query.length < 2) {
+                $('#searchFeedback').text('Please enter at least 2 characters to search').show();
+                return;
+            }
+            
+            $('#searchFeedback').hide();
+            $('#searchCustomerBtn').html('<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>');
+            
+            $.ajax({
+                url: '{% url "customer_search_api" %}',
+                data: { q: query },
+                dataType: 'json',
+                success: function(data) {
+                    $('#searchCustomerBtn').html('<i class="fas fa-search"></i>');
+                    
+                    const customers = data.customers;
+                    if (customers.length === 0) {
+                        $('#customerResultsBody').html('<tr><td colspan="6" class="text-center">No customers found</td></tr>');
+                    } else {
+                        let html = '';
+                        customers.forEach(function(customer) {
+                            html += `
+                                <tr>
+                                    <td>${customer.name}</td>
+                                    <td>${customer.phone}</td>
+                                    <td>${customer.customer_type}</td>
+                                    <td>₹${customer.credit_limit.toFixed(2)}</td>
+                                    <td>₹${customer.pending_amount.toFixed(2)}</td>
+                                    <td>
+                                        <button type="button" class="btn btn-sm btn-primary select-customer" 
+                                            data-id="${customer.id}" 
+                                            data-name="${customer.name}" 
+                                            data-phone="${customer.phone}">
+                                            Select
+                                        </button>
+                                    </td>
+                                </tr>
+                            `;
+                        });
+                        $('#customerResultsBody').html(html);
+                    }
+                    $('#customerResults').show();
+                },
+                error: function(xhr, status, error) {
+                    $('#searchCustomerBtn').html('<i class="fas fa-search"></i>');
+                    $('#searchFeedback').text('Error searching for customers: ' + error).show();
+                }
+            });
+        }
+        
+        // Select customer
+        $(document).on('click', '.select-customer', function() {
+            const id = $(this).data('id');
+            const name = $(this).data('name');
+            const phone = $(this).data('phone');
+            
+            $('#id_customer_id').val(id);
+            $('#id_customer_name').val(name);
+            $('#id_customer_phone').val(phone);
+            
+            $('#selectedCustomerName').text(name);
+            $('#selectedCustomerPhone').text(phone);
+            
+            $('#customerResults').hide();
+            $('#selectedCustomer').show();
+            
+            // Enable submit button
+            $('#submitBtn').prop('disabled', false);
+        });
+        
+        // Change customer
+        $('#changeCustomerBtn').click(function() {
+            $('#selectedCustomer').hide();
+            $('#customerSearch').val('').focus();
+            
+            // Clear selected customer
+            $('#id_customer_id').val('');
+            $('#id_customer_name').val('');
+            $('#id_customer_phone').val('');
+            
+            // Disable submit button
+            $('#submitBtn').prop('disabled', true);
+        });
+        
+        // Form submission
+        $('#invoiceForm').submit(function(e) {
+            if (!$('#id_customer_id').val()) {
+                e.preventDefault();
+                alert('Please select a customer before creating an invoice.');
+                return false;
+            }
+            
+            // Disable button to prevent double submission
+            $('#submitBtn').prop('disabled', true).html('<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Creating...');
+        });
+    });
+</script>
+{% endblock %}

@@ -1,0 +1,453 @@
+{% extends 'base.html' %}
+
+{% block title %}Dashboard - Dry Fruits Business{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="h2">Dashboard</h1>
+        <div>
+            <span class="text-muted">Today: </span>
+            <span class="fw-bold">{{ today|date:"F d, Y" }}</span>
+        </div>
+    </div>
+
+    <!-- Debug Info (Hidden in production) -->
+    {% if debug_info %}
+    <div class="card mb-4 d-none">
+        <div class="card-header bg-warning">
+            <h5 class="mb-0">Debug Information</h5>
+        </div>
+        <div class="card-body">
+            <h6>Current Pending: {{ debug_info.current_pending }}</h6>
+            <h6>Previous Pending: {{ debug_info.prev_pending }}</h6>
+            
+            <h6 class="mt-3">All Invoices:</h6>
+            <div class="table-responsive">
+                <table class="table table-sm">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Invoice #</th>
+                            <th>Total</th>
+                            <th>Paid</th>
+                            <th>Pending</th>
+                            <th>Status</th>
+                            <th>Type</th>
+                            <th>Created</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for invoice in debug_info.all_invoices %}
+                        <tr>
+                            <td>{{ invoice.id }}</td>
+                            <td>{{ invoice.invoice_number }}</td>
+                            <td>{{ invoice.total }}</td>
+                            <td>{{ invoice.amount_paid }}</td>
+                            <td>{{ invoice.pending }}</td>
+                            <td>{{ invoice.status }}</td>
+                            <td>{{ invoice.payment_type }}</td>
+                            <td>{{ invoice.created_at }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            
+            <h6 class="mt-3">Pending Invoices:</h6>
+            <div class="table-responsive">
+                <table class="table table-sm">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Invoice #</th>
+                            <th>Total</th>
+                            <th>Paid</th>
+                            <th>Pending</th>
+                            <th>Status</th>
+                            <th>Type</th>
+                            <th>Created</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for invoice in debug_info.pending_invoices %}
+                        <tr>
+                            <td>{{ invoice.id }}</td>
+                            <td>{{ invoice.invoice_number }}</td>
+                            <td>{{ invoice.total }}</td>
+                            <td>{{ invoice.amount_paid }}</td>
+                            <td>{{ invoice.pending }}</td>
+                            <td>{{ invoice.status }}</td>
+                            <td>{{ invoice.payment_type }}</td>
+                            <td>{{ invoice.created_at }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Overview Cards -->
+    <div class="row mb-4">
+        <div class="col-md-4 mb-4">
+            <div class="card card-dashboard h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="text-muted">Total Sales</h6>
+                            <h3 class="fw-bold">₹{{ total_sales|floatformat:2 }}</h3>
+                        </div>
+                        <div class="bg-light rounded-circle p-3">
+                            <i class="fas fa-chart-line text-primary fa-2x"></i>
+                        </div>
+                    </div>
+                    <p class="text-muted mt-3 mb-0">
+                        <span class="{% if sales_growth >= 0 %}text-success{% else %}text-danger{% endif %} me-2">
+                            <i class="fas fa-arrow-{% if sales_growth >= 0 %}up{% else %}down{% endif %}"></i> 
+                            {{ sales_growth|default:"0" }}%
+                        </span>
+                        <span>Since last month</span>
+                    </p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-4 mb-4">
+            <div class="card card-dashboard h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="text-muted">Pending Payments</h6>
+                            <h3 class="fw-bold">₹{{ pending_payments|floatformat:2 }}</h3>
+                        </div>
+                        <div class="bg-light rounded-circle p-3">
+                            <i class="fas fa-money-bill-wave text-warning fa-2x"></i>
+                        </div>
+                    </div>
+                    <p class="text-muted mt-3 mb-0">
+                        <span class="{% if pending_growth <= 0 %}text-success{% else %}text-danger{% endif %} me-2">
+                            <i class="fas fa-arrow-{% if pending_growth <= 0 %}down{% else %}up{% endif %}"></i> 
+                            {{ pending_growth|default:"0" }}%
+                        </span>
+                        <span>Since last month</span>
+                    </p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-4 mb-4">
+            <div class="card card-dashboard h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="text-muted">Total Customers</h6>
+                            <h3 class="fw-bold">{{ total_customers|default:"0" }}</h3>
+                        </div>
+                        <div class="bg-light rounded-circle p-3">
+                            <i class="fas fa-users text-success fa-2x"></i>
+                        </div>
+                    </div>
+                    <p class="text-muted mt-3 mb-0">
+                        <span class="{% if customer_growth >= 0 %}text-success{% else %}text-danger{% endif %} me-2">
+                            <i class="fas fa-arrow-{% if customer_growth >= 0 %}up{% else %}down{% endif %}"></i> 
+                            {{ customer_growth|default:"0" }}%
+                        </span>
+                        <span>Since last month</span>
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Links -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0">Quick Links</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-3 mb-3">
+                            <a href="{% url 'price_list_upload' %}" class="text-decoration-none">
+                                <div class="card h-100 text-center p-3">
+                                    <div class="mb-3">
+                                        <i class="fas fa-upload fa-3x text-primary"></i>
+                                    </div>
+                                    <h6>Upload Price List</h6>
+                                    <p class="text-muted small mb-0">Import Excel</p>
+                                </div>
+                            </a>
+                        </div>
+                        
+                        <div class="col-md-3 mb-3">
+                            <a href="{% url 'invoice_create' %}" class="text-decoration-none">
+                                <div class="card h-100 text-center p-3">
+                                    <div class="mb-3">
+                                        <i class="fas fa-file-invoice fa-3x text-success"></i>
+                                    </div>
+                                    <h6>Create New Bill</h6>
+                                    <p class="text-muted small mb-0">Bill Creation</p>
+                                </div>
+                            </a>
+                        </div>
+                        
+                        <div class="col-md-3 mb-3">
+                            <a href="{% url 'pending_payment_list' %}" class="text-decoration-none">
+                                <div class="card h-100 text-center p-3">
+                                    <div class="mb-3">
+                                        <i class="fas fa-money-check-alt fa-3x text-warning"></i>
+                                    </div>
+                                    <h6>View Pending Payments</h6>
+                                    <p class="text-muted small mb-0">View</p>
+                                </div>
+                            </a>
+                        </div>
+                        
+                        <div class="col-md-3 mb-3">
+                            <a href="{% url 'sales_report' %}" class="text-decoration-none">
+                                <div class="card h-100 text-center p-3">
+                                    <div class="mb-3">
+                                        <i class="fas fa-chart-pie fa-3x text-danger"></i>
+                                    </div>
+                                    <h6>Sales Reports</h6>
+                                    <p class="text-muted small mb-0">View Sales Reports</p>
+                                </div>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Reports and Analytics -->
+    <div class="row">
+        <div class="col-md-7 mb-4">
+            <div class="card h-100">
+                <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Daily Sales Trend</h5>
+                    <a href="{% url 'sales_report' %}" class="btn btn-sm btn-outline-secondary">
+                        <i class="fas fa-external-link-alt me-1"></i> View Details
+                    </a>
+                </div>
+                <div class="card-body">
+                    {% if sales_data %}
+                        <canvas id="salesChart" height="250"></canvas>
+                    {% else %}
+                        <div class="text-center py-5">
+                            <p class="text-muted">No sales data available yet</p>
+                            <a href="{% url 'invoice_create' %}" class="btn btn-primary mt-2">
+                                <i class="fas fa-plus me-1"></i> Create First Invoice
+                            </a>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-5 mb-4">
+            <div class="card h-100">
+                <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Payment Mode Split</h5>
+                    <a href="{% url 'sales_report' %}" class="btn btn-sm btn-outline-secondary">
+                        <i class="fas fa-external-link-alt me-1"></i> View Details
+                    </a>
+                </div>
+                <div class="card-body">
+                    {% if total_sales > 0 %}
+                        <div class="text-center mb-3">
+                            <canvas id="paymentChart" height="220"></canvas>
+                        </div>
+                        <div class="text-center">
+                            <div class="d-flex justify-content-center">
+                                <div class="mx-2">
+                                    <span class="badge bg-success">&nbsp;</span> Cash ({{ payment_percentages.cash }}%)
+                                </div>
+                                <div class="mx-2">
+                                    <span class="badge bg-warning">&nbsp;</span> UPI/Card ({{ payment_percentages.upi }}%)
+                                </div>
+                                <div class="mx-2">
+                                    <span class="badge bg-primary">&nbsp;</span> Credit ({{ payment_percentages.credit }}%)
+                                </div>
+                            </div>
+                            <div class="mt-3">
+                                <h4 class="mb-0">₹{{ total_sales|floatformat:2 }}</h4>
+                                <small class="text-muted">Total Sales</small>
+                            </div>
+                        </div>
+                    {% else %}
+                        <div class="text-center py-5">
+                            <p class="text-muted">No payment data available yet</p>
+                            <a href="{% url 'invoice_create' %}" class="btn btn-primary mt-2">
+                                <i class="fas fa-plus me-1"></i> Create First Invoice
+                            </a>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Sales Data Table -->
+    <div class="row">
+        <div class="col-12 mb-4">
+            <div class="card">
+                <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Recent Sales</h5>
+                    <a href="{% url 'export_sales_report' %}" class="btn btn-sm btn-outline-secondary">
+                        <i class="fas fa-download me-1"></i> Export
+                    </a>
+                </div>
+                <div class="card-body">
+                    {% if table_data %}
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Date</th>
+                                        <th>Bills Generated</th>
+                                        <th>Total Sale (₹)</th>
+                                        <th>Cash (₹)</th>
+                                        <th>UPI/Card (₹)</th>
+                                        <th>Credit (₹)</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for item in table_data %}
+                                        <tr>
+                                            <td>{{ item.date }}</td>
+                                            <td>{{ item.bills }}</td>
+                                            <td>{{ item.total_sale|floatformat:2 }}</td>
+                                            <td>{{ item.cash_sale|floatformat:2 }}</td>
+                                            <td>{{ item.upi_sale|floatformat:2 }}</td>
+                                            <td>{{ item.credit_sale|floatformat:2 }}</td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                                <tfoot class="table-dark">
+                                    <tr>
+                                        <td><strong>Total</strong></td>
+                                        <td>{{ total_bills }}</td>
+                                        <td>{{ total_sales|floatformat:2 }}</td>
+                                        <td>{{ payment_totals.cash|floatformat:2 }}</td>
+                                        <td>{{ payment_totals.upi|floatformat:2 }}</td>
+                                        <td>{{ payment_totals.credit|floatformat:2 }}</td>
+                                    </tr>
+                                </tfoot>
+                            </table>
+                        </div>
+                    {% else %}
+                        <div class="text-center py-4">
+                            <p class="text-muted">No sales data available yet</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% if sales_data or total_sales > 0 %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Check if Chart.js is loaded
+        if (typeof Chart === 'undefined') {
+            console.error('Chart.js is not loaded. Please include the Chart.js library.');
+            return;
+        }
+        
+        // Sales Chart
+        var salesCtx = document.getElementById('salesChart');
+        if (salesCtx) {
+            var salesChart = new Chart(salesCtx, {
+                type: 'line',
+                data: {
+                    labels: {{ sales_labels|safe }},
+                    datasets: [{
+                        label: 'Sales',
+                        data: {{ sales_values|safe }},
+                        backgroundColor: 'rgba(54, 162, 235, 0.2)',
+                        borderColor: 'rgba(54, 162, 235, 1)',
+                        borderWidth: 2,
+                        tension: 0.4,
+                        pointRadius: 4,
+                        pointBackgroundColor: 'rgba(54, 162, 235, 1)'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                callback: function(value) {
+                                    return '₹' + value;
+                                }
+                            }
+                        }
+                    },
+                    plugins: {
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return 'Sales: ₹' + context.parsed.y;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+        
+        // Payment Chart
+        var paymentCtx = document.getElementById('paymentChart');
+        if (paymentCtx) {
+            var paymentChart = new Chart(paymentCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Cash', 'UPI/Card', 'Credit'],
+                    datasets: [{
+                        data: [
+                            {{ payment_totals.cash|floatformat:2 }}, 
+                            {{ payment_totals.upi|floatformat:2 }}, 
+                            {{ payment_totals.credit|floatformat:2 }}
+                        ],
+                        backgroundColor: [
+                            'rgba(40, 167, 69, 0.8)',  // Green for Cash
+                            'rgba(255, 193, 7, 0.8)',  // Yellow for UPI/Card
+                            'rgba(0, 123, 255, 0.8)'   // Blue for Credit
+                        ],
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    cutout: '70%',
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    var label = context.label || '';
+                                    var value = context.parsed || 0;
+                                    var total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                    var percentage = Math.round((value / total) * 100);
+                                    return label + ': ₹' + value.toFixed(2) + ' (' + percentage + '%)';
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+    });
+</script>
+{% endif %}
+{% endblock %}

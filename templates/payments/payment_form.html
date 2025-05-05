@@ -1,0 +1,143 @@
+{% extends 'base.html' %}
+{% load crispy_forms_tags %}
+
+{% block title %}Record Payment - Dry Fruits Business{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="h2">Record Payment</h1>
+        <a href="{% url 'pending_payments' %}" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left me-2"></i> Back to Pending Payments
+        </a>
+    </div>
+    
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card mb-4">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0">Invoice Information</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <p class="mb-1"><strong>Invoice Number:</strong></p>
+                            <p class="mb-3">{{ invoice.invoice_number }}</p>
+                        </div>
+                        <div class="col-md-6">
+                            <p class="mb-1"><strong>Invoice Date:</strong></p>
+                            <p class="mb-3">{{ invoice.created_at|date:"F d, Y" }}</p>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <p class="mb-1"><strong>Customer:</strong></p>
+                            <p class="mb-3">{{ invoice.customer.name }}</p>
+                        </div>
+                        <div class="col-md-6">
+                            <p class="mb-1"><strong>Phone:</strong></p>
+                            <p class="mb-3">{{ invoice.customer.phone }}</p>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-4">
+                            <p class="mb-1"><strong>Total Amount:</strong></p>
+                            <p class="mb-0">₹{{ invoice.total|floatformat:2 }}</p>
+                        </div>
+                        <div class="col-md-4">
+                            <p class="mb-1"><strong>Amount Paid:</strong></p>
+                            <p class="mb-0">₹{{ invoice.amount_paid|floatformat:2 }}</p>
+                        </div>
+                        <div class="col-md-4">
+                            <p class="mb-1"><strong>Amount Due:</strong></p>
+                            <p class="mb-0">₹{{ invoice.amount_due|floatformat:2 }}</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0">Payment Details</h5>
+                </div>
+                <div class="card-body">
+                    <form method="post">
+                        {% csrf_token %}
+                        
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                {{ form.amount|as_crispy_field }}
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                {{ form.payment_method|as_crispy_field }}
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            {{ form.reference_number|as_crispy_field }}
+                        </div>
+                        
+                        <div class="mb-3">
+                            {{ form.notes|as_crispy_field }}
+                        </div>
+                        
+                        <div class="d-grid gap-2 d-md-flex justify-content-md-end mt-4">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save me-2"></i> Record Payment
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0">Payment Information</h5>
+                </div>
+                <div class="card-body">
+                    <p class="text-muted">
+                        Record a payment for this invoice. The payment will be applied to the invoice and the customer's account will be updated.
+                    </p>
+                    <hr>
+                    <h6 class="fw-bold">Payment Methods:</h6>
+                    <ul class="text-muted small">
+                        <li><strong>Cash:</strong> Payment made in cash</li>
+                        <li><strong>UPI/Card:</strong> Payment made via UPI, debit card, or credit card</li>
+                        <li><strong>Bank Transfer:</strong> Payment made via bank transfer</li>
+                        <li><strong>Cheque:</strong> Payment made via cheque</li>
+                    </ul>
+                    <hr>
+                    <h6 class="fw-bold">Tips:</h6>
+                    <ul class="text-muted small">
+                        <li>The amount field is pre-filled with the remaining amount due</li>
+                        <li>You can change the amount if the customer is making a partial payment</li>
+                        <li>The reference number is optional but helpful for tracking payments</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    $(document).ready(function() {
+        // Set the default amount to the amount due
+        $('#id_amount').val('{{ invoice.amount_due }}');
+        
+        // Validate that the amount is not greater than the amount due
+        $('#id_amount').change(function() {
+            var amount = parseFloat($(this).val());
+            var amountDue = parseFloat('{{ invoice.amount_due }}');
+            
+            if (amount > amountDue) {
+                alert('The payment amount cannot be greater than the amount due (₹' + amountDue.toFixed(2) + ')');
+                $(this).val(amountDue.toFixed(2));
+            }
+        });
+    });
+</script>
+{% endblock %}
